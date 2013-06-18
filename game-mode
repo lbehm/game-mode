@@ -67,7 +67,7 @@ print_verbose() {
 action_enable() {
 	if [[ -d $ACTIONSDIR ]]; then
 		print_verbose 'Enable game-mode...'
-		$ACTIONSDIR/S??*
+		$ACTIONSDIR/S??* 2>/dev/null
 		exit 0
 	else
 		print_error "Couldn't find actions directory: $ACTIONSDIR"
@@ -77,7 +77,7 @@ action_enable() {
 action_disable() {
 	if [[ -d $ACTIONSDIR ]]; then
 		print_verbose 'Disable game-mode...'
-		$ACTIONSDIR/K??*
+		$ACTIONSDIR/K??* 2>/dev/null
 		exit 0
 	else
 		print_error "Couldn't find actions directory: $ACTIONSDIR"
@@ -104,7 +104,7 @@ action_remove() {
 		if [[ -f $FILENAME ]]; then
 			rm $FILENAME
 		else
-			print_error "\nAction entry does't exist!"
+			print_error "Action entry does't exist!"
 			exit 1
 		fi
 		print_verbose ' Done.'
