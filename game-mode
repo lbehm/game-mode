@@ -1,0 +1,153 @@
+#!/bin/bash
+
+# ### game-mode #############
+# game-mode is a tool for linux to disable
+#  unneccesary services and processes.
+#
+# The behavior is controlled by rules.
+# It stores it's config in the ~/.config/game-mode directory.
+# All commands will be executed with the current user
+# If you need root priveleges for example 'service ngin stop'
+#  you'll have to sudo the direct commands
+#
+# Usage:
+# game-mode [ -v ] [ -e | -d | -a <name> <level> <commands> | -r <name> ]
+#
+# game-mode -e			Enable the game mode
+# game-mode --enable	The configs will be parsed and commands executed
+#						S??_<name> files will be sorted ascending and executed
+#
+# game-mode -d			Disable the game-mode
+# game-mode --disable	K??_<name> files will be sorted descending and executed
+#
+# game-mode -a			Adds a new rule for game-mode
+# game-mode --add		Params:
+#						name:		name of the rule - this must be one single word! NO SPACES!
+#						level:		must contain a S or K, followed by 2 digits for ordering
+#									S07 - the commands will be executed when the game-mode gets enabled
+#									K67 - the commands will be executed when the game-mode gets disabled
+#						commands:	commands that will be executed by game-mode
+#									placed into the command files
+#
+# game-mode -r			Removes a rule from game-mode
+# game-mode --remove	Param:
+#						name:		name of the rule - this must be one single word! NO SPACES!
+#						level:		must contain a S or K, followed by 2 digits for ordering
+#									S07 - the commands will be executed when the game-mode gets enabled
+#									K67 - the commands will be executed when the game-mode gets disabled
+# 
+# ###########################
+
+CONFIGDIR="$HOME/.config/game-mode"
+VERBOSE=false
+
+# ### functions #############
+# find_actions_dir
+# returns the directory where we find our rules
+find_actions_dir() {
+	if [[ -d $CONFIGDIR/rcG.d ]]; then
+		echo "$CONFIGDIR/rcG.d"
+		return 0
+	fi
+	echo '.'
+	return 1
+}
+print_usage() {
+	echo "Usage: game-mode [ -v ] [ -e | -d | -a <name> <level> <commands> | -r <name> ]" >&2
+}
+print_error() {
+	echo $1 >&2
+}
+print_verbose() {
+	if [[ "x$VERBOSE" = "xtrue" ]]; then
+		echo $1
+	fi
+}
+
+action_enable() {
+	if [[ -d $ACTIONSDIR ]]; then
+		print_verbose 'Enable game-mode...'
+		$ACTIONSDIR/S??* 2>/dev/null
+		exit 0
+	else
+		print_error "Couldn't find actions directory: $ACTIONSDIR"
+		exit 1
+	fi
+}
+action_disable() {
+	if [[ -d $ACTIONSDIR ]]; then
+		print_verbose 'Disable game-mode...'
+		$ACTIONSDIR/K??* 2>/dev/null
+		exit 0
+	else
+		print_error "Couldn't find actions directory: $ACTIONSDIR"
+		exit 1
+	fi
+}
+action_add() {
+	if [[ -d $ACTIONSDIR ]]; then
+		print_verbose "Add $1..."
+		FILENAME="$ACTIONSDIR/$2_$1"
+		echo "$3" > $FILENAME
+		chmod +x $FILENAME
+		print_verbose ' Done.'
+		exit 0
+	else
+		print_error "Couldn't find actions directory: $ACTIONSDIR"
+		exit 1
+	fi
+}
+action_remove() {
+	if [[ -d $ACTIONSDIR ]]; then
+		print_verbose "Remove $1..."
+		FILENAME="$ACTIONSDIR/$2_$1"
+		if [[ -f $FILENAME ]]; then
+			rm $FILENAME
+		else
+			print_error "Action entry does't exist!"
+			exit 1
+		fi
+		print_verbose ' Done.'
+		exit 0
+	else
+		print_error "Couldn't find actions directory: $ACTIONSDIR"
+		exit 1
+	fi
+}
+# ### end functions #########
+
+# load the given params
+
+# load general config
+if [[ -f $CONFIGDIR/defaults ]]; then
+	. "$CONFIGDIR/defaults"
+fi
+if [[ ! -d $ACTIONSDIR ]]; then
+	ACTIONSDIR=`find_actions_dir`
+fi
+# do our work
+# verbose?
+if [[ "x$1" = "x-v" ]]; then
+	VERBOSE=true
+	shift
+fi
+# routing the aliases
+case "$1" in
+	'-e'|'--enabled')
+		action_enable
+	;;
+	'-d'|'--disabled')
+		action_disable
+	;;
+	'-a'|'--add')
+		action_add "$2" "$3" "$4"
+	;;
+	'-r'|'--remove')
+		action_remove "$2" "$3"
+	;;
+	*)
+		print_usage
+		exit 1
+	;;
+esac
+# end
